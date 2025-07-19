@@ -1,20 +1,20 @@
 import { useState } from 'react';
 
-export function useAIChat() {
+export function useIntent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  async function ask(prompt: string, systemPrompt?: string): Promise<string | null> {
+  async function classify(text: string): Promise<string | null> {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:6006/api/ai', {
+      const res = await fetch('http://localhost:6006/api/intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, systemPrompt }),
+        body: JSON.stringify({ text }),
       });
       const data = await res.json();
-      return data.reply;
+      return data.intent;
     } catch (err) {
       setError(err as Error);
       return null;
@@ -23,5 +23,5 @@ export function useAIChat() {
     }
   }
 
-  return { ask, loading, error };
+  return { classify, loading, error };
 }

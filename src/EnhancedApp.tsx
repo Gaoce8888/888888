@@ -8,7 +8,9 @@ import PerformanceMonitor from './components/PerformanceMonitor';
 import ErrorBoundary from './components/ErrorBoundary';
 import VoiceRecorder from './components/VoiceRecorder';
 import { useAIChat } from './hooks/useAIChat';
+import { useIntent } from './hooks/useIntent';
 import { useState } from 'react';
+import ImageUploader from './components/ImageUploader';
 
 // Persistent message cache (module-level singleton)
 const messageCache = new LRUCache<string, Message>(1000);
@@ -40,6 +42,7 @@ export default function EnhancedApp() {
   const wsPool = poolRef.current;
 
   const { ask, loading: aiLoading } = useAIChat();
+  const { classify: detectIntent } = useIntent();
   const [prompt, setPrompt] = useState('');
 
   useEffect(() => {
@@ -88,6 +91,22 @@ export default function EnhancedApp() {
             }}
           />
 
+          <ImageUploader
+            onImageText={(text, dataUrl) => {
+              const baseId = Date.now().toString();
+              messageQueue.enqueue(
+                { id: baseId + '-img', content: dataUrl, from: 'kf001', type: 'image' },
+                MessagePriority.NORMAL
+              );
+              if (text) {
+                messageQueue.enqueue(
+                  { id: baseId + '-ocr', content: text, from: 'system', type: 'text' },
+                  MessagePriority.NORMAL
+                );
+              }
+            }}
+          />
+
           <div style={{ display: 'flex', marginBottom: 8 }}>
             <input
               style={{ flex: 1 }}
@@ -106,6 +125,21 @@ export default function EnhancedApp() {
                   MessagePriority.HIGH
                 );
                 setPrompt('');
+
+                // intent detection (async, no await to keep UI snappy)
+                detectIntent(prompt).then((intent) => {
+                  if (intent && intent !== 'other') {
+                    messageQueue.enqueue(
+                      {
+                        id: id + '-intent',
+                        content: `【意图识别】${intent}`,
+                        from: 'system',
+                        type: 'text',
+                      },
+                      MessagePriority.NORMAL
+                    );
+                  }
+                });
 
                 const reply = await ask(prompt);
                 if (reply) {
