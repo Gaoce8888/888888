@@ -1,9 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { getWebSocketClient, WebSocketClient } from './websocket-client';
+import React, { useEffect } from 'react';
 import { messageQueue, MessagePriority } from './services/message-queue';
+import { ConnectionPool } from './services/connection-pool';
+import { LRUCache } from './services/lru-cache';
+import { useOptimizedState } from './hooks/useOptimizedState';
 import { VirtualizedMessageList } from './components/OptimizedComponents';
 import PerformanceMonitor from './components/PerformanceMonitor';
 import ErrorBoundary from './components/ErrorBoundary';
+
+// Persistent message cache (module-level singleton)
+const messageCache = new LRUCache<string, Message>(1000);
 
 interface Message {
   id: string;
@@ -12,26 +17,33 @@ interface Message {
 }
 
 export default function EnhancedApp() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [wsClient] = useState<WebSocketClient>(() =>
-    getWebSocketClient('ws://localhost:6006/ws', {
-      userId: 'kf001',
-      userType: 'kefu',
-      enableEnterpriseFeatures: true,
-      reconnectInterval: 1000,
-      maxReconnectAttempts: 10,
-    })
-  );
+  const [messages, setMessages] = useOptimizedState<Message[]>(() => messageCache.values());
+
+  const poolRef = React.useRef<ConnectionPool>();
+  if (!poolRef.current) {
+    poolRef.current = new ConnectionPool(
+      ['ws://localhost:6006/ws', 'wss://backup.local/ws'],
+      {
+        userId: 'kf001',
+        userType: 'kefu',
+        enableEnterpriseFeatures: true,
+        reconnectInterval: 1000,
+        maxReconnectAttempts: 10,
+      }
+    );
+  }
+  const wsPool = poolRef.current;
 
   useEffect(() => {
     function handleIncoming(msg: Message) {
-      setMessages((prev) => [...prev, msg]);
+      messageCache.set(msg.id, msg);
+      setMessages(messageCache.values());
     }
 
-    wsClient.on('message', handleIncoming);
+    wsPool.on('message', handleIncoming);
 
     const processHandler = (msg: Message, done: (res: { success: boolean }) => void) => {
-      wsClient.send(msg);
+      wsPool.send(msg);
       done({ success: true });
     };
     messageQueue.on('processMessage', processHandler);
@@ -43,11 +55,11 @@ export default function EnhancedApp() {
     );
 
     return () => {
-      wsClient.off('message', handleIncoming);
+      wsPool.off('message', handleIncoming);
       messageQueue.off('processMessage', processHandler);
-      wsClient.close();
+      wsPool.close();
     };
-  }, [wsClient]);
+  }, [wsPool]);
 
   return (
     <ErrorBoundary>
