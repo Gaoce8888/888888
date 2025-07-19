@@ -2,8 +2,10 @@ import React, { useRef, useState, useEffect, memo } from 'react';
 
 interface Message {
   id: string;
-  content: string;
+  content: string; // Could be text, html, base64 img, etc.
   from: string;
+  type?: 'text' | 'html' | 'image' | 'voice';
+  meta?: Record<string, any>;
 }
 
 interface UserItemProps {
@@ -13,6 +15,23 @@ interface UserItemProps {
 }
 
 export const OptimizedMessage = memo(({ message, isOwn }: { message: Message; isOwn: boolean }) => {
+  const renderContent = () => {
+    switch (message.type) {
+      case 'html':
+        return <div dangerouslySetInnerHTML={{ __html: message.content }} />;
+      case 'image':
+        return <img src={message.content} alt="img" style={{ maxWidth: '100%', borderRadius: 8 }} />;
+      case 'voice':
+        return (
+          <audio controls>
+            <source src={message.content} type={message.meta?.mimeType || 'audio/webm'} />
+          </audio>
+        );
+      default:
+        return <span>{message.content}</span>;
+    }
+  };
+
   return (
     <div
       style={{
@@ -28,9 +47,10 @@ export const OptimizedMessage = memo(({ message, isOwn }: { message: Message; is
           padding: 8,
           maxWidth: '70%',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          wordBreak: 'break-word',
         }}
       >
-        {message.content}
+        {renderContent()}
       </div>
     </div>
   );
