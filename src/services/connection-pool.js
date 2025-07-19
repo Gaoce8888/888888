@@ -1,4 +1,5 @@
 import EventEmitter from 'eventemitter3';
+import logger from '../utils/logger';
 
 /**
  * 企业级连接池管理器
@@ -84,7 +85,7 @@ export class ConnectionPool extends EventEmitter {
    */
   setupConnectionHandlers(connection, connectionInfo) {
     connection.onopen = () => {
-      console.log(`[ConnectionPool] Connection ${connectionInfo.id} opened`);
+      logger.debug(`[ConnectionPool] Connection ${connectionInfo.id} opened`);
       this.emit('connectionOpen', connectionInfo);
       
       // 备用连接需要认证
@@ -105,12 +106,12 @@ export class ConnectionPool extends EventEmitter {
 
     connection.onerror = (error) => {
       connectionInfo.metrics.errors++;
-      console.error(`[ConnectionPool] Connection ${connectionInfo.id} error:`, error);
+      logger.error(`[ConnectionPool] Connection ${connectionInfo.id} error:`, error);
       this.emit('connectionError', { connectionInfo, error });
     };
 
     connection.onclose = (event) => {
-      console.log(`[ConnectionPool] Connection ${connectionInfo.id} closed`);
+      logger.debug(`[ConnectionPool] Connection ${connectionInfo.id} closed`);
       this.handleConnectionClose(connectionInfo);
     };
   }
@@ -136,7 +137,7 @@ export class ConnectionPool extends EventEmitter {
     this.connections.delete(connectionInfo.id);
 
     if (connectionInfo.connection === this.primaryConnection) {
-      console.log('[ConnectionPool] Primary connection lost, switching to backup');
+      logger.debug('[ConnectionPool] Primary connection lost, switching to backup');
       this.primaryConnection = null;
       this.switchToBackup();
     } else {
@@ -162,7 +163,7 @@ export class ConnectionPool extends EventEmitter {
       this.promoteToMainConnection(healthyBackup);
       this.emit('failover', { from: 'primary', to: 'backup' });
     } else {
-      console.log('[ConnectionPool] No healthy backup found, creating new primary');
+      logger.debug('[ConnectionPool] No healthy backup found, creating new primary');
       this.createConnection(false);
     }
   }
@@ -187,7 +188,7 @@ export class ConnectionPool extends EventEmitter {
       }
     }
 
-    console.log('[ConnectionPool] Promoted backup connection to primary');
+    logger.debug('[ConnectionPool] Promoted backup connection to primary');
   }
 
   /**
@@ -271,7 +272,7 @@ export class ConnectionPool extends EventEmitter {
 
       // 关闭不健康的连接
       if (!isHealthy && info.connection.readyState === WebSocket.OPEN) {
-        console.log(`[ConnectionPool] Closing unhealthy connection ${id}`);
+        logger.debug(`[ConnectionPool] Closing unhealthy connection ${id}`);
         info.connection.close();
       }
     }

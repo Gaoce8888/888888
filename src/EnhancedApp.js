@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import logger from './utils/logger';
 import { getWebSocketClient } from './services/websocket-client';
 import { MessageCache } from './services/message-cache';
 import { 
@@ -44,7 +45,7 @@ const EnhancedApp = () => {
   }), []);
 
   // WebSocket连接
-  const wsClient = useWebSocket('ws://localhost:6006/ws', {
+  const wsClient = useWebSocket(process.env.REACT_APP_WS_URL || 'ws://localhost:6006/ws', {
     userId: state.currentUser.id,
     userType: state.currentUser.type,
     enableEnterpriseFeatures: true,
@@ -111,7 +112,7 @@ const EnhancedApp = () => {
         break;
         
       default:
-        console.log('Unknown message type:', message.type);
+        logger.debug('Unknown message type:', message.type);
     }
   }, [messageCache, state.currentUser.id, state.selectedUser, dispatch, trackAction]);
 
@@ -188,7 +189,7 @@ const EnhancedApp = () => {
       await messageCache.set(`msg_${message.id}`, message);
       
     } catch (error) {
-      console.error('Send message failed:', error);
+      logger.error('Send message failed:', error);
       
       // 更新消息状态为失败
       dispatch({
@@ -251,7 +252,7 @@ const EnhancedApp = () => {
     
     // 这里应该从服务器加载历史消息
     // 示例：模拟加载
-    console.log('Loading more messages for:', state.selectedUser.id);
+    logger.debug('Loading more messages for:', state.selectedUser.id);
   }, [state.selectedUser, trackAction]);
 
   // 获取用户的最后一条消息
@@ -371,7 +372,7 @@ const EnhancedApp = () => {
       </div>
       
       <div className="performance-metrics">
-        <button onClick={() => console.log(getMetrics())}>
+        <button onClick={() => logger.debug(getMetrics())}>
           查看性能指标
         </button>
       </div>

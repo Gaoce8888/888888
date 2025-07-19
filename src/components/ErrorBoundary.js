@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import logger from '../utils/logger';
 import * as Sentry from '@sentry/react';
 
 /**
@@ -57,8 +58,8 @@ export class ErrorBoundary extends Component {
     }));
     
     // 日志记录
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-    console.error('Component Stack:', errorInfo.componentStack);
+    logger.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('Component Stack:', errorInfo.componentStack);
     
     // 触发错误回调
     if (onError) {
@@ -112,19 +113,21 @@ export class ErrorBoundary extends Component {
    */
   async sendErrorReport(errorReport) {
     try {
-      const response = await fetch('/api/errors', {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:6006/api';
+      const response = await fetch(`${apiUrl}/errors`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          [process.env.REACT_APP_CSRF_TOKEN_HEADER || 'X-CSRF-Token']: sessionStorage.getItem('csrfToken')
         },
         body: JSON.stringify(errorReport)
       });
       
       if (!response.ok) {
-        console.error('Failed to send error report');
+        logger.error('Failed to send error report');
       }
     } catch (error) {
-      console.error('Error sending report:', error);
+      logger.error('Error sending report:', error);
     }
   }
   
@@ -317,7 +320,7 @@ export const AsyncErrorBoundary = ({ children, ...props }) => {
   // 捕获未处理的 Promise 拒绝
   React.useEffect(() => {
     const handleUnhandledRejection = (event) => {
-      console.error('Unhandled promise rejection:', event.reason);
+      logger.error('Unhandled promise rejection:', event.reason);
       captureError(new Error(event.reason));
     };
     

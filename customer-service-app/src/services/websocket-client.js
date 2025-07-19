@@ -1,4 +1,5 @@
 import EventEmitter from 'eventemitter3';
+import logger from '../utils/logger';
 import { ConnectionPool } from './connection-pool';
 import { NetworkMonitor } from './network-monitor';
 import { MessageQueue } from './message-queue';
@@ -66,12 +67,12 @@ class EnterpriseWebSocketClient extends EventEmitter {
   initializeEnterpriseFeatures() {
     // 网络监控
     this.networkMonitor.on('online', () => {
-      console.log('[WebSocket] Network online, attempting reconnection');
+      logger.debug('[WebSocket] Network online, attempting reconnection');
       this.connect();
     });
 
     this.networkMonitor.on('offline', () => {
-      console.log('[WebSocket] Network offline');
+      logger.debug('[WebSocket] Network offline');
       this.handleDisconnect();
     });
 
@@ -121,7 +122,7 @@ class EnterpriseWebSocketClient extends EventEmitter {
 
         this.ws.onerror = (error) => {
           this.metrics.errors++;
-          console.error('[WebSocket] Connection error:', error);
+          logger.error('[WebSocket] Connection error:', error);
           reject(error);
         };
 
@@ -139,7 +140,7 @@ class EnterpriseWebSocketClient extends EventEmitter {
     };
 
     this.ws.onclose = (event) => {
-      console.log('[WebSocket] Connection closed:', event.code, event.reason);
+      logger.debug('[WebSocket] Connection closed:', event.code, event.reason);
       this.handleDisconnect();
     };
   }
@@ -169,7 +170,7 @@ class EnterpriseWebSocketClient extends EventEmitter {
       }
       
     } catch (error) {
-      console.error('[WebSocket] Failed to parse message:', error);
+      logger.error('[WebSocket] Failed to parse message:', error);
       this.metrics.errors++;
     }
   }
@@ -304,7 +305,7 @@ class EnterpriseWebSocketClient extends EventEmitter {
       30000
     );
     
-    console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
+    logger.debug(`[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
     
     setTimeout(() => {
       if (this.state === ConnectionState.RECONNECTING) {

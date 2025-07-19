@@ -7,24 +7,39 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "lint": "eslint src --ext .js,.jsx",
+    "lint:fix": "eslint src --ext .js,.jsx --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,json,css,md}\"",
+    "analyze": "source-map-explorer 'build/static/js/*.js'",
+    "fix:console": "node scripts/fix-console-logs.js",
+    "security:check": "npm audit",
+    "build:prod": "npm run lint && npm run test -- --watchAll=false && npm run build"
   },
   "dependencies": {
+    "@sentry/react": "^9.40.0",
+    "crypto-js": "^4.2.0",
+    "dompurify": "^3.2.6",
+    "eventemitter3": "^5.0.1",
+    "helmet": "^8.1.0",
+    "localforage": "^1.10.0",
+    "lodash": "^4.17.21",
+    "lz-string": "^1.5.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
     "react-window": "^1.8.10",
     "react-window-infinite-loader": "^1.0.9",
-    "lodash": "^4.17.21",
-    "eventemitter3": "^5.0.1",
-    "lz-string": "^1.5.0",
-    "localforage": "^1.10.0",
     "web-vitals": "^3.5.0"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.202",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@types/lodash": "^4.14.202"
+    "eslint-plugin-security": "^3.0.1",
+    "prettier": "^3.6.2",
+    "source-map-explorer": "^2.5.3"
   },
   "eslintConfig": {
     "extends": [
